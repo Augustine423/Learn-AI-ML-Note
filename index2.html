@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="AI Core OS — Multi-cloud LLM building and fine-tuning across Vertex AI, Azure AI Foundry, AWS Bedrock, and SageMaker, with GKE/AKS/EKS deployments.">
+    <meta name="theme-color" content="#030712">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>AI Core | Multi-Cloud Model Building &amp; Fine-Tuning System</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+
+    <style>
+        /* ============================================
+           DESIGN TOKENS
+        ============================================ */
+        :root {
+            --bg-color: #030712;
+            --surface-color: rgba(17, 24, 39, 0.75);
+            --surface-border: rgba(0, 240, 255, 0.25);
+
+            --primary-accent: #00f0ff;
+            --primary-glow: rgba(0, 240, 255, 0.45);
+            --hud-cyan: #00f0ff;
+            --hud-glow: rgba(0, 240, 255, 0.35);
+            --hud-box-bg: rgba(6, 15, 30, 0.94);
+            --hud-box-border: #00f0ff;
+            --hud-box-glow: rgba(0, 240, 255, 0.4);
+
+            --k8s-blue: #326ce5;
+            --k8s-blue-glow: rgba(50, 108, 229, 0.45);
+
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+
+            --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+            --ease-pop: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            touch-action: pan-x pan-y;
+            -ms-touch-action: pan-x pan-y;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            touch-action: pan-x pan-y;
+            -ms-touch-action: pan-x pan-y;
+            overscroll-behavior: none;
+        }
+
+        img, svg { display: block; max-width: 100%; }
+
+        a { text-decoration: none; color: inherit; }
+
+        :focus-visible {
+            outline: 2px solid var(--primary-accent);
+            outline-offset: 3px;
+            border-radius: 4px;
+        }
+
+        /* ============================================
+           AMBIENT BACKGROUND
+        ============================================ */
+        .ambient-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+            contain: strict;
+        }
+
+        .glow-sphere-1,
+        .glow-sphere-2 {
+            position: absolute;
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
+        }
+
+        .glow-sphere-1 {
+            top: -10%;
+            right: 15%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, var(--primary-glow) 0%, rgba(0,0,0,0) 70%);
+            filter: blur(80px);
+        }
+
+        .glow-sphere-2 {
+            bottom: 5%;
+            left: 5%;
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(0,0,0,0) 70%);
+            filter: blur(80px);
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(to right, rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* ============================================
+           NAVIGATION
+        ============================================ */
+        .site-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 8%;
+            padding-top: calc(1.25rem + var(--safe-top));
+            padding-left: calc(8% + var(--safe-left));
+            padding-right: calc(8% + var(--safe-right));
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--surface-border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.4rem;
+            letter-spacing: -0.5px;
+        }
+
+        .brand span { color: var(--primary-accent); }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: color 0.3s var(--ease-out-soft),
+                        text-shadow 0.3s var(--ease-out-soft);
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-accent);
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid var(--primary-accent);
+            box-shadow: 0 0 12px var(--primary-glow);
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--primary-accent);
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary-accent);
+            animation: pulse 2s infinite;
+            will-change: transform, opacity;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: 0.4; transform: scale(1.35); }
+        }
+
+        /* ============================================
+           HERO SECTION
+        ============================================ */
+        .hero-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            align-items: center;
+            padding: 2rem 8%;
+            min-height: calc(100vh - 80px);
+            gap: 2rem;
+        }
+
+        .hero-text { max-width: 580px; }
+
+        .pill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary-accent);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+            white-space: nowrap;
+        }
+
+        .hero-text h1 {
+            font-size: 3.2rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-text h1 .gradient-text {
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary-accent) 60%, #a855f7 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+
+        .hero-text p {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        .cta-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: transform 0.3s var(--ease-out-soft),
+                        box-shadow 0.3s var(--ease-out-soft),
+                        background-color 0.3s var(--ease-out-soft);
+            will-change: transform;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-accent);
+            color: #030712;
+            box-shadow: 0 0 25px var(--primary-glow);
+            border: 1px solid rgba(0, 240, 255, 0.6);
+        }
+
+        .btn-primary:hover {
+            transform: translate3d(0, -2px, 0);
+            box-shadow: 0 0 35px var(--primary-glow);
+            background: #33f3ff;
+        }
+
+        .btn-glass {
+            background: rgba(17, 24, 39, 0.6);
+            color: var(--primary-accent);
+            border: 1px solid var(--primary-accent);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .btn-glass:hover {
+            background: rgba(0, 240, 255, 0.1);
+            transform: translate3d(0, -2px, 0);
+            box-shadow: 0 0 25px var(--primary-glow);
+        }
+
+        /* ============================================
+           STAGING CANVAS & MULTI-HUD BOXES
+        ============================================ */
+        .hero-media {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            transform: translateX(30px);
+        }
+
+        .t800-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 480px;
+            height: 600px;
+            transform: translateX(40px);
+        }
+
+        .t800-image {
+            height: 100%;
+            width: auto;
+            margin: 0 auto;
+            object-fit: contain;
+            filter:
+                drop-shadow(0 20px 30px rgba(0, 0, 0, 0.9))
+                drop-shadow(0 0 25px rgba(0, 240, 255, 0.25));
+        }
+
+        .hud-connector-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9;
+            filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.8));
+        }
+
+        .hud-line-path {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 0.6s var(--ease-out-soft);
+            will-change: stroke-dashoffset;
+        }
+
+        .hud-line-path.active {
+            stroke-dashoffset: 0;
+        }
+
+        .hud-scan-box {
+            position: absolute;
+            width: 205px;
+            height: 175px;
+            background: var(--hud-box-bg);
+            border: 1.5px solid var(--hud-box-border);
+            box-shadow:
+                0 0 18px var(--hud-box-glow),
+                inset 0 0 12px rgba(0, 240, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 10;
+            font-family: 'JetBrains Mono', monospace;
+            opacity: 0;
+            transform: scale(0.2);
+            transition:
+                transform 0.4s var(--ease-pop),
+                opacity 0.35s var(--ease-out-soft);
+            will-change: transform, opacity;
+            overflow: hidden;
+            pointer-events: none;
+            contain: layout style paint;
+        }
+
+        .hud-scan-box.visible {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        #hudBoxEngine {
+            top: 15px;
+            right: -105px;
+            transform-origin: top left;
+        }
+
+        #hudBoxPipeline {
+            top: 235px;
+            left: -115px;
+            transform-origin: center right;
+        }
+
+        #hudBoxCluster {
+            bottom: 45px;
+            right: -125px;
+            transform-origin: bottom left;
+        }
+
+        .hud-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.4);
+            padding-bottom: 5px;
+            margin-bottom: 6px;
+            font-size: 0.58rem;
+            color: var(--primary-accent);
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
+
+        .hud-header .live-tag {
+            background: rgba(0, 240, 255, 0.25);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 0.5rem;
+            animation: pulse 1s infinite;
+            border: 1px solid rgba(0, 240, 255, 0.5);
+            color: #fff;
+        }
+
+        .hud-body {
+            font-size: 0.54rem;
+            line-height: 1.45;
+            color: rgba(204, 251, 255, 0.95);
+            white-space: pre-wrap;
+            word-break: break-all;
+            height: calc(100% - 24px);
+            overflow-y: auto;
+            scrollbar-width: none;
+            contain: content;
+        }
+
+        .hud-body::-webkit-scrollbar { display: none; }
+
+        .hud-line {
+            display: block;
+            margin-bottom: 3px;
+            opacity: 0;
+            transform: translate3d(0, 4px, 0);
+            animation: lineAppear 0.18s var(--ease-out-soft) forwards;
+            will-change: transform, opacity;
+        }
+
+        .hud-line.success { color: #34d399; text-shadow: 0 0 4px rgba(52, 211, 153, 0.5); }
+        .hud-line.warning { color: #fbbf24; text-shadow: 0 0 4px rgba(251, 191, 36, 0.5); }
+        .hud-line.cyan    { color: var(--hud-cyan); text-shadow: 0 0 4px var(--hud-glow); }
+
+        @keyframes lineAppear {
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+
+        /* ============================================
+           KUBERNETES DEPLOYMENT SECTION (NEW)
+        ============================================ */
+        .k8s-section {
+            padding: 4rem 8% 5rem;
+            position: relative;
+        }
+
+        .k8s-header {
+            text-align: center;
+            max-width: 760px;
+            margin: 0 auto 3rem;
+        }
+
+        .k8s-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(50, 108, 229, 0.1);
+            border: 1px solid rgba(50, 108, 229, 0.6);
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #7aa7ff;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 0 15px var(--k8s-blue-glow);
+            letter-spacing: 0.5px;
+        }
+
+        .k8s-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .k8s-header h2 {
+            font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+            font-weight: 800;
+            letter-spacing: -1px;
+            line-height: 1.15;
+            margin-bottom: 1rem;
+        }
+
+        .k8s-header h2 .k8s-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #7aa7ff 60%, #a855f7 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+
+        .k8s-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .k8s-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .k8s-card {
+            position: relative;
+            background: var(--surface-color);
+            border: 1.5px solid rgba(50, 108, 229, 0.35);
+            border-radius: 18px;
+            padding: 1.75rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition:
+                transform 0.35s var(--ease-out-soft),
+                border-color 0.35s var(--ease-out-soft),
+                box-shadow 0.35s var(--ease-out-soft);
+            will-change: transform;
+            overflow: hidden;
+        }
+
+        .k8s-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #326ce5, transparent);
+            opacity: 0.5;
+            transition: opacity 0.35s var(--ease-out-soft);
+        }
+
+        .k8s-card:hover {
+            border-color: #326ce5;
+            box-shadow:
+                0 0 30px var(--k8s-blue-glow),
+                0 20px 40px rgba(0, 0, 0, 0.4);
+            transform: translate3d(0, -6px, 0);
+        }
+
+        .k8s-card:hover::before { opacity: 1; }
+
+        .k8s-card-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 1.25rem;
+        }
+
+        .k8s-logo {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(50, 108, 229, 0.12);
+            border: 1px solid rgba(50, 108, 229, 0.5);
+            box-shadow: 0 0 14px var(--k8s-blue-glow);
+            color: #7aa7ff;
+            flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 0.85rem;
+        }
+
+        .k8s-logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .k8s-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .k8s-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+        }
+
+        .k8s-subtitle {
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: #7aa7ff;
+            letter-spacing: 0.4px;
+        }
+
+        .k8s-card p {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 1.25rem;
+        }
+
+        /* Terminal-style code block */
+        .k8s-terminal {
+            background: rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(50, 108, 229, 0.35);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.68rem;
+            line-height: 1.7;
+            color: rgba(204, 251, 255, 0.95);
+            overflow-x: auto;
+            scrollbar-width: none;
+            white-space: pre;
+            margin-bottom: 1.25rem;
+            position: relative;
+        }
+
+        .k8s-terminal::-webkit-scrollbar { display: none; }
+
+        .k8s-terminal .prompt { color: #7aa7ff; user-select: none; }
+        .k8s-terminal .cmd    { color: #00f0ff; }
+        .k8s-terminal .flag   { color: #fbbf24; }
+        .k8s-terminal .arg    { color: #a7f3d0; }
+        .k8s-terminal .comment{ color: #6b7280; font-style: italic; }
+        .k8s-terminal .string { color: #f0abfc; }
+
+        /* Specs list */
+        .k8s-specs {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.78rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .k8s-specs li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(204, 251, 255, 0.9);
+            line-height: 1.5;
+        }
+
+        .k8s-specs li::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #326ce5;
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--k8s-blue-glow);
+            flex-shrink: 0;
+        }
+
+        .k8s-specs li span {
+            color: #7aa7ff;
+            font-weight: 700;
+        }
+
+        /* CTA row below the 3 cards */
+        .k8s-cta {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 3rem;
+            flex-wrap: wrap;
+        }
+
+        .k8s-cta .btn-k8s {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 13px 26px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            background: rgba(50, 108, 229, 0.12);
+            color: #7aa7ff;
+            border: 1px solid rgba(50, 108, 229, 0.6);
+            box-shadow: 0 0 20px var(--k8s-blue-glow);
+            font-family: 'JetBrains Mono', monospace;
+            transition:
+                transform 0.3s var(--ease-out-soft),
+                background 0.3s var(--ease-out-soft),
+                box-shadow 0.3s var(--ease-out-soft);
+            cursor: pointer;
+        }
+
+        .k8s-cta .btn-k8s:hover {
+            transform: translate3d(0, -2px, 0);
+            background: rgba(50, 108, 229, 0.2);
+            box-shadow: 0 0 30px var(--k8s-blue-glow);
+        }
+
+        /* ============================================
+           DASHBOARD GRID
+        ============================================ */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem 8% 5rem 8%;
+        }
+
+        .glass-card {
+            background: var(--surface-color);
+            border: 1.5px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            transition:
+                transform 0.3s var(--ease-out-soft),
+                border-color 0.3s var(--ease-out-soft),
+                box-shadow 0.3s var(--ease-out-soft);
+            position: relative;
+            overflow: hidden;
+            will-change: transform;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-accent), transparent);
+            opacity: 0.3;
+            transition: opacity 0.3s var(--ease-out-soft);
+        }
+
+        .glass-card:hover {
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
+            transform: translate3d(0, -4px, 0);
+        }
+
+        .glass-card:hover::before { opacity: 1; }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--primary-accent);
+            box-shadow: 0 0 10px var(--primary-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-accent);
+            margin-bottom: 1.25rem;
+        }
+
+        .glass-card h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .glass-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* ============================================
+           ACCESSIBILITY: reduce motion
+        ============================================ */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        /* ============================================
+           MOBILE MENU
+        ============================================ */
+        .menu-toggle {
+            display: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid var(--primary-accent);
+            color: var(--primary-accent);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s var(--ease-out-soft);
+        }
+
+        .menu-toggle:active {
+            background: rgba(0, 240, 255, 0.2);
+        }
+
+        .mobile-menu {
+            position: fixed;
+            inset: 0;
+            background: rgba(3, 7, 18, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            padding: calc(1.5rem + var(--safe-top)) 2rem calc(2rem + var(--safe-bottom));
+            transform: translateY(-100%);
+            transition: transform 0.4s var(--ease-out-soft);
+            visibility: hidden;
+        }
+
+        .mobile-menu.open {
+            transform: translateY(0);
+            visibility: visible;
+        }
+
+        .mobile-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--surface-border);
+            margin-bottom: 2rem;
+        }
+
+        .mobile-menu-close {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid var(--primary-accent);
+            color: var(--primary-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .mobile-menu nav ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .mobile-menu nav a {
+            display: block;
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            font-weight: 600;
+            background: rgba(17, 24, 39, 0.5);
+            border: 1px solid rgba(0, 240, 255, 0.1);
+            transition: all 0.3s var(--ease-out-soft);
+        }
+
+        .mobile-menu nav a:active {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--primary-accent);
+            color: var(--primary-accent);
+        }
+
+        /* ============================================
+           RESPONSIVE — LAPTOP
+        ============================================ */
+        @media (max-width: 1200px) {
+            .t800-wrapper {
+                width: 380px;
+                height: 500px;
+                transform: translateX(20px);
+            }
+            .hero-media { transform: translateX(0); }
+            #hudBoxEngine   { right: -15px; }
+            #hudBoxPipeline { left:  -40px; }
+            #hudBoxCluster  { right: -25px; }
+        }
+
+        /* ============================================
+           RESPONSIVE — TABLET
+        ============================================ */
+        @media (max-width: 992px) {
+            .site-navbar {
+                padding: 1rem 5%;
+                padding-top: calc(1rem + var(--safe-top));
+            }
+
+            .nav-links { display: none; }
+            .menu-toggle { display: flex; }
+
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+                padding: 3rem 5% 2rem;
+                min-height: auto;
+                gap: 3rem;
+            }
+
+            .hero-text { margin: 0 auto; max-width: 640px; }
+
+            .hero-text h1 { font-size: clamp(2rem, 6vw, 3rem); }
+
+            .cta-group { justify-content: center; }
+
+            .hero-media { transform: none; }
+
+            .t800-wrapper {
+                width: 360px;
+                height: 460px;
+                transform: none;
+                margin: 0 auto;
+            }
+
+            .hud-connector-svg { display: none; }
+
+            .hud-scan-box {
+                position: relative;
+                inset: auto !important;
+                top: auto !important;
+                left: auto !important;
+                right: auto !important;
+                bottom: auto !important;
+                margin: 15px auto 0;
+                width: 100%;
+                max-width: 320px;
+                height: auto;
+                min-height: 150px;
+                transform: scale(1) !important;
+                opacity: 1 !important;
+                pointer-events: auto;
+            }
+
+            .t800-wrapper {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+                width: 100%;
+                max-width: 400px;
+            }
+
+            .t800-image {
+                height: 400px;
+                margin: 0 auto;
+            }
+
+            /* K8s tablet: 1 column */
+            .k8s-section {
+                padding: 3rem 5% 4rem;
+            }
+
+            .k8s-grid {
+                grid-template-columns: 1fr;
+                max-width: 520px;
+                gap: 1.25rem;
+            }
+
+            .k8s-terminal {
+                font-size: 0.72rem;
+            }
+        }
+
+        /* ============================================
+           RESPONSIVE — MOBILE
+        ============================================ */
+        @media (max-width: 768px) {
+            .site-navbar {
+                padding: 0.85rem 4%;
+                padding-top: calc(0.85rem + var(--safe-top));
+                padding-left: calc(4% + var(--safe-left));
+                padding-right: calc(4% + var(--safe-right));
+            }
+
+            .brand { font-size: 1.15rem; gap: 8px; }
+            .brand svg, .brand i { width: 22px; height: 22px; }
+
+            .status-badge { display: none; }
+            .menu-toggle { display: flex; }
+
+            .hero-container {
+                padding: 2rem 5% 1.5rem;
+                padding-left: calc(5% + var(--safe-left));
+                padding-right: calc(5% + var(--safe-right));
+                gap: 2rem;
+            }
+
+            .pill-tag {
+                font-size: 0.7rem;
+                padding: 5px 12px;
+                gap: 6px;
+                margin-bottom: 1.25rem;
+                max-width: 100%;
+                white-space: normal;
+                text-align: center;
+                line-height: 1.4;
+            }
+
+            .hero-text h1 {
+                font-size: clamp(1.75rem, 7vw, 2.25rem);
+                letter-spacing: -1px;
+                line-height: 1.15;
+                margin-bottom: 1rem;
+            }
+
+            .hero-text p {
+                font-size: 0.95rem;
+                line-height: 1.6;
+                margin-bottom: 1.5rem;
+                padding: 0 0.5rem;
+            }
+
+            .cta-group {
+                flex-direction: column;
+                gap: 0.75rem;
+                width: 100%;
+                padding: 0 0.5rem;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 15px 20px;
+                font-size: 0.95rem;
+                border-radius: 14px;
+                transition: transform 0.15s var(--ease-out-soft),
+                            box-shadow 0.15s var(--ease-out-soft);
+            }
+
+            .btn:active { transform: scale(0.97); }
+
+            .hero-media { padding: 0; transform: none; }
+
+            .t800-wrapper {
+                width: 100%;
+                max-width: 320px;
+                height: auto;
+                transform: none;
+                margin: 0 auto;
+                gap: 1rem;
+            }
+
+            .t800-image {
+                height: auto;
+                max-height: 340px;
+                width: 100%;
+                margin: 0 auto;
+                filter:
+                    drop-shadow(0 12px 20px rgba(0, 0, 0, 0.9))
+                    drop-shadow(0 0 18px rgba(0, 240, 255, 0.3));
+            }
+
+            .hud-scan-box {
+                margin: 0 auto;
+                width: 100%;
+                max-width: 100%;
+                height: auto;
+                min-height: 130px;
+                padding: 12px;
+                border-radius: 10px;
+                transform-origin: center !important;
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+            }
+
+            .hud-header {
+                font-size: 0.62rem;
+                padding-bottom: 6px;
+                margin-bottom: 8px;
+            }
+
+            .hud-body {
+                font-size: 0.62rem;
+                line-height: 1.55;
+                height: auto;
+                max-height: 130px;
+                overflow-y: auto;
+            }
+
+            .hud-line { animation-duration: 0.2s; }
+
+            /* K8s mobile */
+            .k8s-section {
+                padding: 2.5rem 5% 3rem;
+                padding-left: calc(5% + var(--safe-left));
+                padding-right: calc(5% + var(--safe-right));
+            }
+
+            .k8s-header { margin-bottom: 2rem; }
+
+            .k8s-badge {
+                font-size: 0.7rem;
+                padding: 5px 12px;
+                letter-spacing: 0.3px;
+            }
+
+            .k8s-header h2 {
+                font-size: 1.65rem;
+                letter-spacing: -0.7px;
+            }
+
+            .k8s-header p {
+                font-size: 0.9rem;
+                line-height: 1.6;
+            }
+
+            .k8s-grid {
+                gap: 1rem;
+            }
+
+            .k8s-card {
+                padding: 1.35rem;
+                border-radius: 16px;
+            }
+
+            .k8s-card:active {
+                transform: scale(0.98);
+                border-color: #326ce5;
+            }
+
+            .k8s-card-head {
+                gap: 10px;
+                margin-bottom: 1rem;
+            }
+
+            .k8s-logo {
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+            }
+
+            .k8s-logo svg { width: 22px; height: 22px; }
+
+            .k8s-title { font-size: 1rem; }
+            .k8s-subtitle { font-size: 0.68rem; }
+
+            .k8s-card p {
+                font-size: 0.85rem;
+                margin-bottom: 1rem;
+            }
+
+            .k8s-terminal {
+                font-size: 0.68rem;
+                padding: 11px 12px;
+                line-height: 1.65;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+                /* allow horizontal scroll inside code */
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .k8s-specs {
+                font-size: 0.72rem;
+                gap: 0.45rem;
+            }
+
+            .k8s-cta {
+                margin-top: 2rem;
+                flex-direction: column;
+                gap: 0.75rem;
+                padding: 0 0.5rem;
+            }
+
+            .k8s-cta .btn-k8s {
+                width: 100%;
+                justify-content: center;
+                padding: 14px 20px;
+                font-size: 0.85rem;
+            }
+
+            /* Dashboard */
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1.5rem 5% 4rem;
+                padding-left: calc(5% + var(--safe-left));
+                padding-right: calc(5% + var(--safe-right));
+                padding-bottom: calc(4rem + var(--safe-bottom));
+            }
+
+            .glass-card { padding: 1.35rem; border-radius: 14px; }
+            .glass-card:active { transform: scale(0.98); border-color: var(--primary-accent); }
+
+            .card-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 10px;
+                margin-bottom: 1rem;
+            }
+
+            .glass-card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+            .glass-card p { font-size: 0.85rem; line-height: 1.55; }
+        }
+
+        /* ============================================
+           RESPONSIVE — SMALL MOBILE
+        ============================================ */
+        @media (max-width: 420px) {
+            .brand { font-size: 1rem; }
+
+            .hero-text h1 { font-size: 1.55rem; letter-spacing: -0.5px; }
+
+            .pill-tag { font-size: 0.65rem; padding: 4px 10px; }
+
+            .t800-image { max-height: 280px; }
+
+            .hud-header { font-size: 0.58rem; }
+            .hud-body { font-size: 0.58rem; }
+
+            .btn { padding: 14px 18px; font-size: 0.88rem; }
+
+            .k8s-header h2 { font-size: 1.4rem; }
+            .k8s-terminal { font-size: 0.62rem; }
+            .k8s-specs { font-size: 0.68rem; }
+        }
+
+        /* ============================================
+           LANDSCAPE MOBILE
+        ============================================ */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .hero-container { min-height: auto; padding: 1.5rem 5%; }
+            .hero-text h1 { font-size: 1.6rem; }
+            .t800-image { max-height: 240px; }
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* ============================================
+           HOVER-CAPABLE DEVICES ONLY
+        ============================================ */
+        @media (hover: none) {
+            .btn:hover,
+            .glass-card:hover,
+            .nav-links a:hover,
+            .k8s-card:hover { transform: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg" aria-hidden="true">
+        <div class="glow-sphere-1"></div>
+        <div class="glow-sphere-2"></div>
+    </div>
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <!-- MOBILE MENU -->
+    <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+        <div class="mobile-menu-header">
+            <div class="brand">
+                <i data-lucide="brain-circuit" style="color: var(--primary-accent)"></i>
+                AI Core<span>OS</span>
+            </div>
+            <button class="mobile-menu-close" id="menuClose" aria-label="Close menu">
+                <i data-lucide="x" size="20"></i>
+            </button>
+        </div>
+        <nav aria-label="Mobile">
+            <ul>
+                <li><a href="#">Vertex AI</a></li>
+                <li><a href="#">Azure Foundry</a></li>
+                <li><a href="#">Bedrock &amp; SageMaker</a></li>
+                <li><a href="#k8s">Kubernetes Deploy</a></li>
+                <li><a href="#">Documentation</a></li>
+                <li><a href="#">Pricing</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- NAVIGATION -->
+    <header class="site-navbar">
+        <div class="brand">
+            <i data-lucide="brain-circuit" style="color: var(--primary-accent)"></i>
+            AI Core<span>OS</span>
+        </div>
+        <nav aria-label="Primary">
+            <ul class="nav-links">
+                <li><a href="#">Vertex AI</a></li>
+                <li><a href="#">Azure Foundry</a></li>
+                <li><a href="#k8s">Kubernetes</a></li>
+                <li><a href="#">Bedrock &amp; SageMaker</a></li>
+            </ul>
+        </nav>
+        <div class="status-badge">
+            <div class="pulse-dot" aria-hidden="true"></div>
+            MULTI-CLOUD SYNC ONLINE
+        </div>
+        <button class="menu-toggle" id="menuOpen" aria-label="Open menu" aria-expanded="false">
+            <i data-lucide="menu" size="20"></i>
+        </button>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero-container">
+        <div class="hero-text">
+            <div class="pill-tag">
+                <i data-lucide="sparkles" size="16"></i> LLM, vLLM &amp; NEURAL PLATFORM v5.0
+            </div>
+            <h1>AI Model Building &amp; <br><span class="gradient-text">Fine-Tuning System</span></h1>
+            <p>Construct, adapt, and optimize foundation LLMs, vLLM accelerated endpoints, and custom neural networks natively across Google Vertex AI, Microsoft Azure AI Foundry, Amazon Bedrock, and AWS SageMaker AI.</p>
+
+            <div class="cta-group">
+                <a href="#k8s" class="btn btn-primary">
+                    Start Multi-Cloud Tuning <i data-lucide="arrow-right" size="18"></i>
+                </a>
+                <a href="#" class="btn btn-glass">
+                    <i data-lucide="layers" size="18"></i> Hub Integrations
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-media">
+            <div class="t800-wrapper">
+
+                <svg class="hud-connector-svg" viewBox="0 0 480 600" aria-hidden="true">
+                    <circle cx="238" cy="42" r="5" stroke="#00f0ff" stroke-width="1.5" fill="rgba(0, 240, 255, 0.3)"/>
+                    <circle cx="238" cy="42" r="2.5" fill="#00f0ff"/>
+                    <polyline id="pathEngine" class="hud-line-path"
+                              points="238,42 360,42 430,40"
+                              stroke="#00f0ff" stroke-width="1.5" fill="none"/>
+
+                    <circle cx="210" cy="290" r="5" stroke="#00f0ff" stroke-width="1.5" fill="rgba(0, 240, 255, 0.3)"/>
+                    <circle cx="210" cy="290" r="2.5" fill="#00f0ff"/>
+                    <polyline id="pathPipeline" class="hud-line-path"
+                              points="210,290 130,290 70,290"
+                              stroke="#00f0ff" stroke-width="1.5" fill="none"/>
+
+                    <circle cx="245" cy="450" r="5" stroke="#00f0ff" stroke-width="1.5" fill="rgba(0, 240, 255, 0.3)"/>
+                    <circle cx="245" cy="450" r="2.5" fill="#00f0ff"/>
+                    <polyline id="pathCluster" class="hud-line-path"
+                              points="245,450 350,450 415,470"
+                              stroke="#00f0ff" stroke-width="1.5" fill="none"/>
+                </svg>
+
+                <img src="robo.webp"
+                     alt="T-800 Cybernetic Organism"
+                     class="t800-image"
+                     width="480" height="600"
+                     loading="eager"
+                     decoding="async"
+                     fetchpriority="high">
+
+                <div class="hud-scan-box" id="hudBoxEngine">
+                    <div class="hud-header">
+                        <span>VERTEX &amp; FOUNDRY LLMS</span>
+                        <span class="live-tag">TUNE</span>
+                    </div>
+                    <div class="hud-body" id="hudBodyEngine"></div>
+                </div>
+
+                <div class="hud-scan-box" id="hudBoxPipeline">
+                    <div class="hud-header">
+                        <span>AWS BEDROCK &amp; vLLM</span>
+                        <span class="live-tag">SERVE</span>
+                    </div>
+                    <div class="hud-body" id="hudBodyPipeline"></div>
+                </div>
+
+                <div class="hud-scan-box" id="hudBoxCluster">
+                    <div class="hud-header">
+                        <span>AWS SAGEMAKER AI</span>
+                        <span class="live-tag">SCALE</span>
+                    </div>
+                    <div class="hud-body" id="hudBodyCluster"></div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         KUBERNETES DEPLOYMENT SECTION (NEW)
+    ============================================ -->
+    <section class="k8s-section" id="k8s">
+        <div class="k8s-header">
+            <span class="k8s-badge">
+                <i data-lucide="hexagon" size="16"></i>
+                KUBERNETES · CNCF CERTIFIED
+            </span>
+            <h2>Deploy to <span class="k8s-gradient">GKE, AKS &amp; EKS</span></h2>
+            <p>Push fine-tuned models to any managed Kubernetes cluster with one command. Auto-generated manifests, GPU node pools, vLLM inference servers, and HPA autoscaling — out of the box.</p>
+        </div>
+
+        <div class="k8s-grid">
+
+            <!-- GKE -->
+            <article class="k8s-card">
+                <div class="k8s-card-head">
+                    <div class="k8s-logo" aria-hidden="true">
+                        <i data-lucide="hexagon"></i>
+                    </div>
+                    <div class="k8s-title-group">
+                        <span class="k8s-title">Google GKE</span>
+                        <span class="k8s-subtitle">container.googleapis.com</span>
+                    </div>
+                </div>
+                <p>Autopilot or Standard clusters with L4 / A100 / H100 node pools and Filestore-backed model caching.</p>
+
+                <div class="k8s-terminal" aria-label="GKE deploy command"><span class="prompt">$</span> <span class="cmd">ai-core</span> deploy <span class="flag">--target</span> <span class="arg">gke</span>
+  <span class="flag">--cluster</span> <span class="string">ai-prod-us-central1</span>
+  <span class="flag">--node-pool</span> <span class="string">a100-80gb</span>
+  <span class="flag">--replicas</span> <span class="arg">3</span>
+<span class="comment"># → gke.ai-core/ai-prod-us-central1 created</span></div>
+
+                <ul class="k8s-specs">
+                    <li><span>Runtime:</span> containerd + gVisor</li>
+                    <li><span>Ingress:</span> Global LB + Cloud Armor</li>
+                    <li><span>Autoscale:</span> HPA + NAP (node auto-provisioning)</li>
+                </ul>
+            </article>
+
+            <!-- AKS -->
+            <article class="k8s-card">
+                <div class="k8s-card-head">
+                    <div class="k8s-logo" aria-hidden="true">
+                        <i data-lucide="hexagon"></i>
+                    </div>
+                    <div class="k8s-title-group">
+                        <span class="k8s-title">Azure AKS</span>
+                        <span class="k8s-subtitle">management.azure.com</span>
+                    </div>
+                </div>
+                <p>GPU-enabled node pools with Azure CNI Overlay, Workload Identity, and Azure ML–linked registries.</p>
+
+                <div class="k8s-terminal" aria-label="AKS deploy command"><span class="prompt">$</span> <span class="cmd">ai-core</span> deploy <span class="flag">--target</span> <span class="arg">aks</span>
+  <span class="flag">--cluster</span> <span class="string">ai-foundry-prod</span>
+  <span class="flag">--node-pool</span> <span class="string">nc24ads-a100</span>
+  <span class="flag">--replicas</span> <span class="arg">3</span>
+<span class="comment"># → aks.ai-foundry-prod connected</span></div>
+
+                <ul class="k8s-specs">
+                    <li><span>Runtime:</span> containerd + Kata Containers</li>
+                    <li><span>Ingress:</span> App Gateway + WAF</li>
+                    <li><span>Autoscale:</span> Cluster Autoscaler + KEDA</li>
+                </ul>
+            </article>
+
+            <!-- EKS -->
+            <article class="k8s-card">
+                <div class="k8s-card-head">
+                    <div class="k8s-logo" aria-hidden="true">
+                        <i data-lucide="hexagon"></i>
+                    </div>
+                    <div class="k8s-title-group">
+                        <span class="k8s-title">AWS EKS</span>
+                        <span class="k8s-subtitle">eks.amazonaws.com</span>
+                    </div>
+                </div>
+                <p>Managed node groups with p4d / p5 instances, Karpenter autoscaling, and Bedrock endpoints via IRSA.</p>
+
+                <div class="k8s-terminal" aria-label="EKS deploy command"><span class="prompt">$</span> <span class="cmd">ai-core</span> deploy <span class="flag">--target</span> <span class="arg">eks</span>
+  <span class="flag">--cluster</span> <span class="string">ai-prod-us-east-1</span>
+  <span class="flag">--node-pool</span> <span class="string">p5.48xlarge</span>
+  <span class="flag">--replicas</span> <span class="arg">3</span>
+<span class="comment"># → eks.ai-prod-us-east-1 ready</span></div>
+
+                <ul class="k8s-specs">
+                    <li><span>Runtime:</span> containerd + Firecracker</li>
+                    <li><span>Ingress:</span> ALB + AWS WAF</li>
+                    <li><span>Autoscale:</span> Karpenter + HPA</li>
+                </ul>
+            </article>
+
+        </div>
+
+        <div class="k8s-cta">
+            <a href="#" class="btn-k8s">
+                <i data-lucide="terminal" size="16"></i> View Deployment Guide
+            </a>
+            <a href="#" class="btn-k8s">
+                <i data-lucide="git-branch" size="16"></i> GitHub Manifests
+            </a>
+            <a href="#" class="btn-k8s">
+                <i data-lucide="book-open" size="16"></i> Helm Charts
+            </a>
+        </div>
+    </section>
+
+    <!-- FEATURE CARDS -->
+    <section class="dashboard-grid">
+        <div class="glass-card">
+            <div class="card-icon"><i data-lucide="cloud"></i></div>
+            <h3>Google Vertex AI</h3>
+            <p>Fine-tune Gemini, custom LLMs, and vision architectures with automated hyperparameter tuning and managed pipelines.</p>
+        </div>
+        <div class="glass-card">
+            <div class="card-icon"><i data-lucide="cpu"></i></div>
+            <h3>Azure AI Foundry</h3>
+            <p>Build, prompt, and evaluate state-of-the-art models with robust safety evaluations and enterprise orchestration.</p>
+        </div>
+        <div class="glass-card">
+            <div class="card-icon"><i data-lucide="server"></i></div>
+            <h3>AWS Bedrock &amp; vLLM</h3>
+            <p>Access high-throughput foundational models via managed APIs and high-performance vLLM serving engines.</p>
+        </div>
+        <div class="glass-card">
+            <div class="card-icon"><i data-lucide="zap"></i></div>
+            <h3>AWS SageMaker AI</h3>
+            <p>Scale custom model training, LoRA fine-tuning, and distributed tensor processing across elastic GPU clusters.</p>
+        </div>
+    </section>
+
+    <script>
+        /* ============================================================
+           AI CORE — HUD STREAM CONTROLLER + MOBILE MENU
+        ============================================================ */
+        (() => {
+            'use strict';
+
+            /* ---------- Lock zoom ---------- */
+            window.addEventListener('wheel', (e) => {
+                if (e.ctrlKey || e.metaKey) e.preventDefault();
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 1) e.preventDefault();
+            }, { passive: false });
+
+            window.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
+
+            /* ---------- Lucide init ---------- */
+            function initLucide() {
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+            }
+
+            /* ---------- System info ---------- */
+            const sysInfo = {
+                clusterHost: window.location.hostname || 'HYPER-NODE-01',
+                vram: navigator.deviceMemory
+                    ? `${navigator.deviceMemory * 4} GB VRAM`
+                    : '80 GB A100',
+                latency: '0.8 ms/token'
+            };
+
+            /* ---------- Log data ---------- */
+            const LOG_SETS = {
+                engine: [
+                    { text: '>> PLATFORM: GOOGLE VERTEX / AZURE FOUNDRY', type: 'cyan' },
+                    { text: '>> MODEL TYPE: LLM / LoRA ADAPTER',         type: 'success' },
+                    { text: '>> EPOCH: 42 / 100 [CONVERGING]',           type: 'success' },
+                    { text: '>> VALIDATION LOSS: 0.0215',                type: 'warning' },
+                    { text: '>> PEFT/QLORA: ENABLED',                    type: '' },
+                    { text: '>> STATUS: OPTIMIZED',                      type: 'cyan' }
+                ],
+                pipeline: [
+                    { text: '>> ENGINE: AWS BEDROCK & vLLM',             type: 'cyan' },
+                    { text: `>> HOST: ${sysInfo.clusterHost.toUpperCase()}`, type: 'warning' },
+                    { text: '>> PAGING / KV-CACHE: OPTIMIZED',           type: 'success' },
+                    { text: '>> THROUGHPUT: 24.5k tok/s',                type: '' },
+                    { text: `>> LATENCY: ${sysInfo.latency}`,            type: 'success' },
+                    { text: '>> DEPLOYMENT: READY',                      type: 'cyan' }
+                ],
+                cluster: [
+                    { text: '>> HARDWARE: AWS SAGEMAKER AI CLUSTER',     type: 'cyan' },
+                    { text: `>> ALLOCATED: ${sysInfo.vram}`,             type: 'success' },
+                    { text: '>> DISTRIBUTED: 8x H100 NODES',             type: '' },
+                    { text: '>> MIXED PRECISION: BF16',                  type: 'warning' },
+                    { text: '>> GPU TEMP: 58°C',                         type: 'success' },
+                    { text: '>> UTILIZATION: 99.8%',                     type: 'cyan' }
+                ]
+            };
+
+            /* ---------- HUD Stream class ---------- */
+            class HudStream {
+                constructor({ boxId, bodyId, pathId, logs, lineDelay = 160 }) {
+                    this.box       = document.getElementById(boxId);
+                    this.body      = document.getElementById(bodyId);
+                    this.path      = document.getElementById(pathId);
+                    this.logs      = logs;
+                    this.lineDelay = lineDelay;
+
+                    this.lineEls = [];
+                    this.timers  = [];
+                    this.destroyed = false;
+
+                    this._preRender();
+                }
+
+                _preRender() {
+                    const frag = document.createDocumentFragment();
+                    this.logs.forEach((item, i) => {
+                        const line = document.createElement('span');
+                        line.className = `hud-line ${item.type}`.trim();
+                        line.textContent = item.text;
+                        line.style.animationDelay = `${i * this.lineDelay}ms`;
+                        line.style.visibility = 'hidden';
+                        frag.appendChild(line);
+                        this.lineEls.push(line);
+                    });
+                    this.body.appendChild(frag);
+                }
+
+                _clearTimers() {
+                    this.timers.forEach((id) => clearTimeout(id));
+                    this.timers = [];
+                }
+
+                _later(fn, ms) {
+                    const id = setTimeout(fn, ms);
+                    this.timers.push(id);
+                    return id;
+                }
+
+                start() {
+                    if (this.destroyed) return;
+                    this._clearTimers();
+
+                    if (this.path) this.path.classList.add('active');
+
+                    this._later(() => {
+                        this.box.classList.add('visible');
+                        this._revealAll();
+                    }, 250);
+                }
+
+                _revealAll() {
+                    this.lineEls.forEach((el) => {
+                        el.style.visibility = 'visible';
+                        el.style.animation = 'none';
+                        void el.offsetHeight;
+                        el.style.animation = '';
+                    });
+
+                    const totalTime = this.logs.length * this.lineDelay + 200;
+                    this._later(() => {
+                        if (this.body.scrollHeight > this.body.clientHeight) {
+                            requestAnimationFrame(() => {
+                                this.body.scrollTop = this.body.scrollHeight;
+                            });
+                        }
+                    }, totalTime);
+
+                    const holdTime = 2500;
+                    this._later(() => this._hide(), totalTime + holdTime);
+                }
+
+                _hide() {
+                    this.box.classList.remove('visible');
+                    if (this.path) this.path.classList.remove('active');
+
+                    this._later(() => {
+                        this.lineEls.forEach((el) => { el.style.visibility = 'hidden'; });
+                        this.body.scrollTop = 0;
+                        this._later(() => this.start(), 800);
+                    }, 500);
+                }
+
+                destroy() {
+                    this.destroyed = true;
+                    this._clearTimers();
+                }
+            }
+
+            /* ---------- Mobile Menu ---------- */
+            function initMobileMenu() {
+                const menu = document.getElementById('mobileMenu');
+                const openBtn = document.getElementById('menuOpen');
+                const closeBtn = document.getElementById('menuClose');
+
+                if (!menu || !openBtn || !closeBtn) return;
+
+                const open = () => {
+                    menu.classList.add('open');
+                    menu.setAttribute('aria-hidden', 'false');
+                    openBtn.setAttribute('aria-expanded', 'true');
+                    document.body.style.overflow = 'hidden';
+                };
+
+                const close = () => {
+                    menu.classList.remove('open');
+                    menu.setAttribute('aria-hidden', 'true');
+                    openBtn.setAttribute('aria-expanded', 'false');
+                    document.body.style.overflow = '';
+                };
+
+                openBtn.addEventListener('click', open);
+                closeBtn.addEventListener('click', close);
+                menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', close));
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && menu.classList.contains('open')) close();
+                });
+            }
+
+            /* ---------- Boot ---------- */
+            function boot() {
+                initLucide();
+                initMobileMenu();
+
+                const streams = [
+                    new HudStream({
+                        boxId: 'hudBoxEngine',
+                        bodyId: 'hudBodyEngine',
+                        pathId: 'pathEngine',
+                        logs: LOG_SETS.engine,
+                        lineDelay: 160
+                    }),
+                    new HudStream({
+                        boxId: 'hudBoxPipeline',
+                        bodyId: 'hudBodyPipeline',
+                        pathId: 'pathPipeline',
+                        logs: LOG_SETS.pipeline,
+                        lineDelay: 150
+                    }),
+                    new HudStream({
+                        boxId: 'hudBoxCluster',
+                        bodyId: 'hudBodyCluster',
+                        pathId: 'pathCluster',
+                        logs: LOG_SETS.cluster,
+                        lineDelay: 180
+                    })
+                ];
+
+                streams[0].start();
+                setTimeout(() => streams[1].start(), 300);
+                setTimeout(() => streams[2].start(), 600);
+
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) {
+                        streams.forEach((s) => s._clearTimers());
+                    } else {
+                        streams.forEach((s) => s.start());
+                    }
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', boot, { once: true });
+            } else {
+                boot();
+            }
+        })();
+    </script>
+</body>
+</html>
