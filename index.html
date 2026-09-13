@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Core | Multi-Cloud Model Building & Fine-Tuning System</title>
+    <!-- Google Fonts & Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-color: #030712;
+            --surface-color: rgba(17, 24, 39, 0.75);
+            --surface-border: rgba(0, 240, 255, 0.25);
+            
+            /* Restored Cyan & Electric Blue Theme Palette */
+            --primary-accent: #00f0ff;
+            --primary-glow: rgba(0, 240, 255, 0.45);
+            --hud-cyan: #00f0ff;
+            --hud-glow: rgba(0, 240, 255, 0.35);
+            --hud-box-bg: rgba(6, 15, 30, 0.94);
+            --hud-box-border: #00f0ff;
+            --hud-box-glow: rgba(0, 240, 255, 0.4);
+            
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ambient Background Mesh */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .glow-sphere-1 {
+            position: absolute;
+            top: -10%;
+            right: 15%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, var(--primary-glow) 0%, rgba(0,0,0,0) 70%);
+            filter: blur(100px);
+        }
+
+        .glow-sphere-2 {
+            position: absolute;
+            bottom: 5%;
+            left: 5%;
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(0,0,0,0) 70%);
+            filter: blur(100px);
+        }
+
+        /* Grid Background Pattern */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(to right, rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Navigation */
+        navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 8%;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--surface-border);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.4rem;
+            letter-spacing: -0.5px;
+        }
+
+        .brand span { color: var(--primary-accent); }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover { 
+            color: var(--primary-accent); 
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid var(--primary-accent);
+            box-shadow: 0 0 12px var(--primary-glow);
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--primary-accent);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary-accent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.35); }
+        }
+
+        /* Hero Section */
+        .hero-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            align-items: center;
+            padding: 2rem 8%;
+            min-height: calc(100vh - 80px);
+            gap: 2rem;
+        }
+
+        .hero-text { max-width: 580px; }
+
+        .pill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary-accent);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+        }
+
+        .hero-text h1 {
+            font-size: 3.2rem;
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-text h1 .gradient-text {
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary-accent) 60%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-text p {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        .cta-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary-accent);
+            color: #030712;
+            box-shadow: 0 0 25px var(--primary-glow);
+            border: 1px solid rgba(0, 240, 255, 0.6);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 35px var(--primary-glow);
+            background: #33f3ff;
+        }
+
+        .btn-glass {
+            background: rgba(17, 24, 39, 0.6);
+            color: var(--primary-accent);
+            border: 1px solid var(--primary-accent);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .btn-glass:hover {
+            background: rgba(0, 240, 255, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px var(--primary-glow);
+        }
+
+        /* --- STAGING CANVAS & MULTI-HUD BOXES --- */
+        .hero-media {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .t800-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 480px;
+            height: 600px;
+        }
+
+        .t800-image {
+            height: 100%;
+            width: auto;
+            margin: 0 auto;
+            display: block;
+            object-fit: contain;
+            filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 25px rgba(0, 240, 255, 0.25));
+        }
+
+        /* SVG Solid Callout Lines Overlay */
+        .hud-connector-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9;
+            filter: drop-shadow(0px 0px 6px rgba(0, 240, 255, 0.8));
+        }
+
+        .hud-line-path {
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            transition: stroke-dashoffset 0.5s ease-out;
+        }
+
+        .hud-line-path.active {
+            stroke-dashoffset: 0;
+        }
+
+        /* Universal Styling for Scanning Callout Boxes */
+        .hud-scan-box {
+            position: absolute;
+            width: 205px;
+            height: 175px;
+            background: var(--hud-box-bg);
+            border: 1.5px solid var(--hud-box-border);
+            box-shadow: 0 0 18px var(--hud-box-glow), inset 0 0 12px rgba(0, 240, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            backdrop-filter: blur(12px);
+            z-index: 10;
+            font-family: 'JetBrains Mono', monospace;
+            opacity: 0;
+            transform: scale(0.2);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.35s ease-out;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* Callout Box Display State */
+        .hud-scan-box.visible {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        /* CALLOUT BOX POSITIONS & DIRECTIONAL ORIGINS */
+        #hudBoxEngine {
+            top: 15px;
+            right: -85px;
+            transform-origin: top left;
+        }
+
+        #hudBoxPipeline {
+            top: 235px;
+            left: -135px;
+            transform-origin: center right;
+        }
+
+        #hudBoxCluster {
+            bottom: 45px;
+            right: -105px;
+            transform-origin: bottom left;
+        }
+
+        .hud-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(0, 240, 255, 0.4);
+            padding-bottom: 5px;
+            margin-bottom: 6px;
+            font-size: 0.58rem;
+            color: var(--primary-accent);
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 5px var(--primary-glow);
+        }
+
+        .hud-header .live-tag {
+            background: rgba(0, 240, 255, 0.25);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 0.5rem;
+            animation: pulse 1s infinite;
+            border: 1px solid rgba(0, 240, 255, 0.5);
+            color: #fff;
+        }
+
+        .hud-body {
+            font-size: 0.54rem;
+            line-height: 1.45;
+            color: rgba(204, 251, 255, 0.95);
+            white-space: pre-wrap;
+            word-break: break-all;
+            height: calc(100% - 24px);
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        .hud-body::-webkit-scrollbar { display: none; }
+
+        .hud-line {
+            display: block;
+            margin-bottom: 3px;
+            opacity: 0;
+            transform: translateY(4px);
+            animation: lineAppear 0.15s forwards ease-out;
+        }
+
+        .hud-line.success { color: #34d399; text-shadow: 0 0 4px rgba(52, 211, 153, 0.5); }
+        .hud-line.warning { color: #fbbf24; text-shadow: 0 0 4px rgba(251, 191, 36, 0.5); }
+        .hud-line.cyan { color: var(--hud-cyan); text-shadow: 0 0 4px var(--hud-glow); }
+
+        @keyframes lineAppear {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Grid Cards Section */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem 8% 5rem 8%;
+        }
+
+        .glass-card {
+            background: var(--surface-color);
+            border: 1.5px solid var(--surface-border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            backdrop-filter: blur(16px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-accent), transparent);
+            opacity: 0.3;
+            transition: opacity 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
+            transform: translateY(-4px);
+        }
+
+        .glass-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--primary-accent);
+            box-shadow: 0 0 10px var(--primary-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-accent);
+            margin-bottom: 1.25rem;
+        }
+
+        .glass-card h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .glass-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Responsive Settings */
+        @media (max-width: 1200px) {
+            .t800-wrapper { width: 380px; height: 500px; }
+            #hudBoxEngine { right: -15px; }
+            #hudBoxPipeline { left: -40px; }
+            #hudBoxCluster { right: -25px; }
+        }
+
+        @media (max-width: 992px) {
+            .hero-container { grid-template-columns: 1fr; text-align: center; }
+            .hero-text { margin: 0 auto; }
+            .t800-wrapper { margin: 0 auto; }
+            .hud-connector-svg { display: none; }
+            .hud-scan-box { position: relative; inset: auto !important; margin: 15px auto; width: 100%; max-width: 300px; transform: scale(1) !important; opacity: 1 !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-bg">
+        <div class="glow-sphere-1"></div>
+        <div class="glow-sphere-2"></div>
+    </div>
+    <div class="bg-grid"></div>
+
+    <!-- Navigation -->
+    <navbar>
+        <div class="brand">
+            <i data-lucide="brain-circuit" style="color: var(--primary-accent)"></i>
+            AI Core<span>OS</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#">Vertex AI</a></li>
+            <li><a href="#">Azure Foundry</a></li>
+            <li><a href="#">Bedrock & SageMaker</a></li>
+        </ul>
+        <div class="status-badge">
+            <div class="pulse-dot"></div>
+            MULTI-CLOUD SYNC ONLINE
+        </div>
+    </navbar>
+
+    <!-- Hero Section -->
+    <section class="hero-container">
+        <div class="hero-text">
+            <div class="pill-tag">
+                <i data-lucide="sparkles" size="16"></i> LLM, vLLM & NEURAL PLATFORM v5.0
+            </div>
+            <h1>AI Model Building & <br><span class="gradient-text">Fine-Tuning System</span></h1>
+            <p>Construct, adapt, and optimize foundation LLMs, vLLM accelerated endpoints, and custom neural networks natively across Google Vertex AI, Microsoft Azure AI Foundry, Amazon Bedrock, and AWS SageMaker AI.</p>
+            
+            <div class="cta-group">
+                <a href="#" class="btn btn-primary">
+                    Start Multi-Cloud Tuning <i data-lucide="arrow-right" size="18"></i>
+                </a>
+                <a href="#" class="btn btn-glass">
+                    <i data-lucide="layers" size="18"></i> Hub Integrations
+                </a>
+            </div>
+        </div>
+
+        <!-- T-800 Display Stage with Directional Callout HUD Boxes -->
+        <div class="hero-media">
+            <div class="t800-wrapper">
+                
+                <!-- SVG CONNECTOR LINES & SOLID TARGET NODES -->
+                <svg class="hud-connector-svg" viewBox="0 0 480 600">
+                    <!-- Head Target Point & Line -->
+                    <circle cx="238" cy="42" r="5" stroke="#00f0ff" stroke-width="1.5" fill="rgba(0, 240, 255, 0.3)"/>
+                    <circle cx="238" cy="42" r="2.5" fill="#00f0ff"/>
+                    <polyline id="pathEngine" class="hud-line-path" points="238,42 340,42 410,40" stroke="#00f0ff" stroke-width="1.5" fill="none"/>
+
+                    <!-- Arm/Weapon Target Point & Line -->
+                    <circle cx="210" cy="290" r="5" stroke="#00f0ff" stroke-width="1.5" fill="rgba(0, 240, 255, 0.3)"/>
+                    <circle cx="210" cy="290" r="2.5" fill="#00f0ff"/>
+                    <polyline id="pathPipeline" class="hud-line-path" points="210,290 120,290 50,290" stroke="#00f0ff" stroke-width="1.5" fill="none"/>
+
+                    <!-- Leg Target Point & Line -->
+                    <circle cx="245" cy="450" r="5" stroke="#00f0ff" stroke-width="1.5" fill="rgba(0, 240, 255, 0.3)"/>
+                    <circle cx="245" cy="450" r="2.5" fill="#00f0ff"/>
+                    <polyline id="pathCluster" class="hud-line-path" points="245,450 330,450 395,470" stroke="#00f0ff" stroke-width="1.5" fill="none"/>
+                </svg>
+
+                <!-- CALLOUT BOX 1: MODEL ENGINE -->
+                <div class="hud-scan-box" id="hudBoxEngine">
+                    <div class="hud-header">
+                        <span>VERTEX & FOUNDRY LLMS</span>
+                        <span class="live-tag">TUNE</span>
+                    </div>
+                    <div class="hud-body" id="hudBodyEngine"></div>
+                </div>
+
+                <!-- CALLOUT BOX 2: DATA PIPELINE -->
+                <div class="hud-scan-box" id="hudBoxPipeline">
+                    <div class="hud-header">
+                        <span>AWS BEDROCK & vLLM</span>
+                        <span class="live-tag">SERVE</span>
+                    </div>
+                    <div class="hud-body" id="hudBodyPipeline"></div>
+                </div>
+
+                <!-- CALLOUT BOX 3: GPU ACCELERATION -->
+                <div class="hud-scan-box" id="hudBoxCluster">
+                    <div class="hud-header">
+                        <span>AWS SAGEMAKER AI</span>
+                        <span class="live-tag">SCALE</span>
+                    </div>
+                    <div class="hud-body" id="hudBodyCluster"></div>
+                </div>
+
+                <!-- Restored T-800 Endoskeleton Image -->
+                <img src="robo.webp" alt="T-800 Cybernetic Organism" class="t800-image">
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Feature Cards -->
+    <section class="dashboard-grid">
+        <div class="glass-card">
+            <div class="card-icon"><i data-lucide="cloud"></i></div>
+            <h3>Google Vertex AI</h3>
+            <p>Fine-tune Gemini, custom LLMs, and vision architectures with automated hyperparameter tuning and managed pipelines.</p>
+        </div>
+        <div class="glass-card">
+            <div class="card-icon"><i data-lucide="cpu"></i></div>
+            <h3>Azure AI Foundry</h3>
+            <p>Build, prompt, and evaluate state-of-the-art models with robust safety evaluations and enterprise orchestration.</p>
+        </div>
+        <div class="glass-card">
+            <div class="card-icon"><i data-lucide="server"></i></div>
+            <h3>AWS Bedrock & vLLM</h3>
+            <p>Access high-throughput foundational models via managed APIs and high-performance vLLM serving engines.</p>
+        </div>
+        <div class="glass-card">
+            <div class="card-icon"><i data-lucide="zap"></i></div>
+            <h3>AWS SageMaker AI</h3>
+            <p>Scale custom model training, LoRA fine-tuning, and distributed tensor processing across elastic GPU clusters.</p>
+        </div>
+    </section>
+
+    <!-- JavaScript Data Streamer & Directional Expansion Animations -->
+    <script>
+        lucide.createIcons();
+
+        let aiSystemInfo = {
+            framework: "PYTORCH / vLLM 0.6",
+            arch: "MULTI-CLOUD HYBRID",
+            cpuCores: navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} ACCELERATORS` : "64 VCPUS",
+            vram: navigator.deviceMemory ? `${navigator.deviceMemory * 4} GB VRAM` : "80 GB A100",
+            resolution: `${window.screen.width}x${window.screen.height}`,
+            clusterHost: window.location.hostname || "HYPER-NODE-01",
+            latency: "0.8 ms/token"
+        };
+
+        function buildLogs() {
+            const engineLogData = [
+                { text: `>> PLATFORM: GOOGLE VERTEX / AZURE FOUNDRY`, type: "cyan" },
+                { text: `>> MODEL TYPE: LLM / LoRA ADAPTER`, type: "success" },
+                { text: `>> EPOCH: 42 / 100 [CONVERGING]`, type: "success" },
+                { text: `>> VALIDATION LOSS: 0.0215`, type: "warning" },
+                { text: `>> PEFT/QLORA: ENABLED`, type: "" },
+                { text: `>> STATUS: OPTIMIZED`, type: "cyan" }
+            ];
+
+            const pipelineLogData = [
+                { text: `>> ENGINE: AWS BEDROCK & vLLM`, type: "cyan" },
+                { text: `>> HOST: ${aiSystemInfo.clusterHost.toUpperCase()}`, type: "warning" },
+                { text: `>> PAGING / KV-CACHE: OPTIMIZED`, type: "success" },
+                { text: `>> THROUGHPUT: 24.5k tok/s`, type: "" },
+                { text: `>> LATENCY: ${aiSystemInfo.latency}`, type: "success" },
+                { text: `>> DEPLOYMENT: READY`, type: "cyan" }
+            ];
+
+            const clusterLogData = [
+                { text: `>> HARDWARE: AWS SAGEMAKER AI CLUSTER`, type: "cyan" },
+                { text: `>> ALLOCATED: ${aiSystemInfo.vram}`, type: "success" },
+                { text: `>> DISTRIBUTED: 8x H100 NODES`, type: "" },
+                { text: `>> MIXED PRECISION: BF16`, type: "warning" },
+                { text: `>> GPU TEMP: 58°C`, type: "success" },
+                { text: `>> UTILIZATION: 99.8%`, type: "cyan" }
+            ];
+
+            return { engineLogData, pipelineLogData, clusterLogData };
+        }
+
+        function startStreamAnimation(boxId, bodyId, pathId, getDataFn, delay = 160) {
+            const container = document.getElementById(bodyId);
+            const box = document.getElementById(boxId);
+            const path = document.getElementById(pathId);
+
+            function runLoop() {
+                container.innerHTML = '';
+                
+                if(path) path.classList.add('active');
+
+                setTimeout(() => {
+                    box.classList.add('visible');
+                    
+                    let idx = 0;
+                    const currentData = getDataFn();
+
+                    function step() {
+                        if (idx < currentData.length) {
+                            const item = currentData[idx];
+                            const line = document.createElement('span');
+                            line.className = `hud-line ${item.type}`;
+                            line.textContent = item.text;
+                            container.appendChild(line);
+                            container.scrollTop = container.scrollHeight;
+                            idx++;
+                            setTimeout(step, delay);
+                        } else {
+                            setTimeout(() => {
+                                box.classList.remove('visible');
+                                if(path) path.classList.remove('active');
+                                
+                                setTimeout(runLoop, 800);
+                            }, 2500);
+                        }
+                    }
+                    step();
+                }, 250);
+            }
+            runLoop();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            startStreamAnimation('hudBoxEngine', 'hudBodyEngine', 'pathEngine', () => buildLogs().engineLogData, 160);
+            setTimeout(() => startStreamAnimation('hudBoxPipeline', 'hudBodyPipeline', 'pathPipeline', () => buildLogs().pipelineLogData, 150), 300);
+            setTimeout(() => startStreamAnimation('hudBoxCluster', 'hudBodyCluster', 'pathCluster', () => buildLogs().clusterLogData, 180), 600);
+        });
+    </script>
+</body>
+</html>
