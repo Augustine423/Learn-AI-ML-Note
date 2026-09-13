@@ -1,1 +1,0 @@
-![alt text](k-1.gif)
